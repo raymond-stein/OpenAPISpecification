@@ -1,0 +1,187 @@
+openapi: 3.0.0
+info:
+  title: Movie Ticket Payment API
+  description: API for processing movie ticket payments
+  version: 1.0.0
+
+servers:
+  - url: https://api.theater.com/v1
+    description: Production server
+
+paths:
+  /payments:
+    post:
+      summary: Process payment for a ticket reservation
+      description: Process payment for reserved seats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        "201":
+          description: Payment successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "402":
+          description: Payment failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentFailedResponse'
+
+  /payments/{paymentId}:
+    get:
+      summary: Get payment details
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      summary: Cancel payment and issue refund
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment canceled and refund initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundResponse'
+        "400":
+          description: Invalid refund request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required:
+        - reservationId
+        - paymentMethod
+      properties:
+        reservationId:
+          type: string
+          description: Reservation ID
+        paymentMethod:
+          type: string
+          enum: [credit_card, debit_card, digital_wallet]
+          description: Payment method
+        cardDetails:
+          type: object
+          properties:
+            cardNumber:
+              type: string
+            expiryDate:
+              type: string
+            cvv:
+              type: string
+
+    PaymentResponse:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          description: Payment ID
+        status:
+          type: string
+          enum: [completed, failed]
+          description: Payment status
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketInfo'
+          description: Ticket information
+
+    PaymentDetail:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        status:
+          type: string
+        amount:
+          type: number
+        reservationId:
+          type: string
+
+    PaymentFailedResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        reason:
+          type: string
+          enum: [insufficient_funds, invalid_card]
+
+    TicketInfo:
+      type: object
+      properties:
+        ticketId:
+          type: string
+        movieTitle:
+          type: string
+        showtime:
+          type: string
+        seat:
+          type: string
+
+    RefundResponse:
+      type: object
+      properties:
+        refundId:
+          type: string
+        paymentId:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
